@@ -5,10 +5,11 @@ from email.mime.text import MIMEText
 from datetime import datetime
 import logging
 import os
+from config import SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD
 
 app = Flask(__name__)
 
-# Configure Celery
+# Configure Celery with RabbitMQ
 app.config['CELERY_BROKER_URL'] = 'pyamqp://guest@localhost//'
 app.config['CELERY_RESULT_BACKEND'] = 'rpc://'
 
@@ -27,22 +28,19 @@ log_file = os.path.join(log_dir, 'messaging_system.log')
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
 
-# Configure logging
-logging.basicConfig(filename='/var/log/messaging_system.log', level=logging.INFO)
-
 # Celery task to send email
 @celery.task
 def send_email(recipient):
     msg = MIMEText('This is a test email from Flask Celery app.')
     msg['Subject'] = 'Test Email'
-    msg['From'] = 'mbahkenneth399@gmail.com'
+    msg['From'] = SMTP_USERNAME
     msg['To'] = recipient
 
     try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
-            server.login('mbahkenneth@gmail.com', 'jar@2023')
-            server.sendmail('mbahkenneth@gmail.com', [recipient], msg.as_string())
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.sendmail(SMTP_USERNAME, [recipient], msg.as_string())
     except Exception as e:
         print(f"Failed to send email: {e}")
 
